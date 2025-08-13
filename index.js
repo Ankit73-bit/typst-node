@@ -6,19 +6,8 @@ import pLimit from "p-limit";
 
 import { CONFIG } from "./config.js";
 import { selectTemplateAndOutput } from "./s3Selector.js";
-import {
-  downloadS3Prefix,
-  uploadFileToS3,
-  s3ObjectExists,
-  s3,
-} from "./s3Utils.js";
-import {
-  safeReadJson,
-  copyIfNotExists,
-  renderTemplate,
-  ensureDir,
-  retry,
-} from "./utils.js";
+import { downloadS3Prefix, uploadFileToS3, s3 } from "./s3Utils.js";
+import { safeReadJson, copyIfNotExists, ensureDir } from "./utils.js";
 import { generatePDFs } from "./pdfGenerator.js";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 
@@ -70,22 +59,17 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
       {},
       cliProgress.Presets.shades_classic
     );
-    progress.start(rows.length * templates.length, 0);
+    progress.start(rows.length, 0);
 
-    // 6️⃣ Concurrent PDF generation
     const limit = pLimit(CONFIG.CONCURRENCY);
     const allResults = [];
 
     await Promise.all(
       rows.map((row) =>
         limit(async () => {
-          const results = await generatePDFs(
-            [row],
-            templates,
-            outputDir,
-            (inc) => progress.increment(inc)
-          );
+          const results = await generatePDFs([row], templates, outputDir);
           allResults.push(...results);
+          progress.increment(); // ✅ single bar updated here, once per row
         })
       )
     );

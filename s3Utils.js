@@ -93,7 +93,6 @@ export async function uploadFileToS3(
       })
     )
   );
-  console.log(`Uploaded: ${key}`);
 }
 
 export { s3 };
